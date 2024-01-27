@@ -7,7 +7,6 @@ Controls:
   Space: Start/Stop simulation
   Up / Down arrows: Increase/Decrease simulation speed (minimum is 1 step per second)
   Right arrow: Advance to next simulation step
-  W: Toggle wraparound (on by default)
   Esc: Exit (duh)
 
 Rules:
