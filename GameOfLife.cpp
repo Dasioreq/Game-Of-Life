@@ -3,7 +3,7 @@
 #include <windows.h>
 #include <cmath>
 
-const unsigned int xCells = 16*5, yCells = 9*5,  sizeMult = 20;
+const unsigned int xCells = 16*4, yCells = 9*4,  sizeMult = 25;
 int timeSteps = 5;
 
 unsigned char cells[xCells][yCells];
