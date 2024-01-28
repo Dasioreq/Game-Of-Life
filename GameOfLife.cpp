@@ -83,9 +83,7 @@ void updateCells(SDL_Renderer* renderer, SDL_Window* window, bool isReset)
                 }
             }  
             else
-            {     
-                if(isReset)
-                    drawCell(i, j, renderer, window, 0);      
+            {        
                 continue; 
             }
         }
@@ -101,10 +99,10 @@ void updateCells(SDL_Renderer* renderer, SDL_Window* window, bool isReset)
 
     time(&end);
 
-    int time = end - start;
+    double time = end - start;
 
     if(time <= 1000 / timeSteps)
-        Sleep(1000 / timeSteps - time);
+        Sleep(1000.0 / timeSteps - time);
 }
 
 int main(int argc, char *argv[])
@@ -173,6 +171,7 @@ int main(int argc, char *argv[])
                         for(unsigned int j = 0; j < yCells; j++)
                         {
                             cells[i][j] = 0x00;
+                            drawCell(i, j, renderer, window, 0);   
                         }
                     }
                     updateCells(renderer, window, 1);
