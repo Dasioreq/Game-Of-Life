@@ -3,12 +3,13 @@
 #include <windows.h>
 #include <cmath>
 
-unsigned const int xCells = 16*3, yCells = 9*3,  sizeMult = 30;
-
-using namespace std;
+const unsigned int xCells = 16*5, yCells = 9*5,  sizeMult = 20;
+int timeSteps = 5;
 
 unsigned char cells[xCells][yCells];
 unsigned char newCells[xCells][yCells];
+
+using namespace std;
 
 void drawCell(unsigned int i,unsigned int j, SDL_Renderer* renderer, SDL_Window* window, unsigned int color)
 {
@@ -25,8 +26,12 @@ void drawCell(unsigned int i,unsigned int j, SDL_Renderer* renderer, SDL_Window*
     SDL_RenderPresent(renderer);
 }
 
-void updateCells(SDL_Renderer* renderer, SDL_Window* window)
+void updateCells(SDL_Renderer* renderer, SDL_Window* window, bool isReset)
 {
+    time_t start, end;
+
+    time(&start);
+
     for(int i = 0; i < xCells; i++)
     {
         for(int j = 0; j < yCells; j++)
@@ -39,19 +44,24 @@ void updateCells(SDL_Renderer* renderer, SDL_Window* window)
         {
             if(cells[i][j] != 0)
             {
+                int xRight = (i + 1) % xCells;
+                int xLeft = (xCells + (i - 1)) % xCells;
+                int yAbove = (j + 1) % yCells;
+                int yBelow = (yCells + (j - 1)) % yCells;
+
                 if((cells[i][j]) & 0x01)
                 {
                     if((cells[i][j] >> 1) > 3 || (cells[i][j] >> 1) < 2)
                     {
                         newCells[i][j] -= 0x01;
-                        newCells[i][(j + 1) % yCells] -= 0x02;
-                        newCells[i][(yCells + (j - 1)) % yCells] -= 0x02;
-                        newCells[(i + 1) % xCells][j] -= 0x02;
-                        newCells[(i + 1) % xCells][(j + 1) % yCells] -= 0x02;
-                        newCells[(i + 1) % xCells][(yCells + (j - 1)) % yCells] -= 0x02;
-                        newCells[(xCells + (i - 1)) % xCells][j] -= 0x02;
-                        newCells[(xCells + (i - 1)) % xCells][(j + 1) % yCells] -= 0x02;
-                        newCells[(xCells + (i - 1)) % xCells][(yCells + (j - 1)) % yCells] -= 0x02;
+                        newCells[i][yAbove] -= 0x02;
+                        newCells[i][yBelow] -= 0x02;
+                        newCells[xRight][j] -= 0x02;
+                        newCells[xRight][yAbove] -= 0x02;
+                        newCells[xRight][yBelow] -= 0x02;
+                        newCells[xLeft][j] -= 0x02;
+                        newCells[xLeft][yAbove] -= 0x02;
+                        newCells[xLeft][yBelow] -= 0x02;
                         drawCell(i, j, renderer, window, 0);
                     }
                 }
@@ -60,26 +70,26 @@ void updateCells(SDL_Renderer* renderer, SDL_Window* window)
                     if(cells[i][j] >> 1 == 0x03)
                     {
                         newCells[i][j] += 0x01;
-                        newCells[i][(j + 1) % yCells] += 0x02;
-                        newCells[i][(yCells + (j - 1)) % yCells] += 0x02;
-                        newCells[(i + 1) % xCells][j] += 0x02;
-                        newCells[(i + 1) % xCells][(j + 1) % yCells] += 0x02;
-                        newCells[(i + 1) % xCells][(yCells + (j - 1)) % yCells] += 0x02;
-                        newCells[(xCells + (i - 1)) % xCells][j] += 0x02;
-                        newCells[(xCells + (i - 1)) % xCells][(j + 1) % yCells] += 0x02;
-                        newCells[(xCells + (i - 1)) % xCells][(yCells + (j - 1)) % yCells] += 0x02;
+                        newCells[i][yAbove] += 0x02;
+                        newCells[i][yBelow] += 0x02;
+                        newCells[xRight][j] += 0x02;
+                        newCells[xRight][yAbove] += 0x02;
+                        newCells[xRight][yBelow] += 0x02;
+                        newCells[xLeft][j] += 0x02;
+                        newCells[xLeft][yAbove] += 0x02;
+                        newCells[xLeft][yBelow] += 0x02;
                         drawCell(i, j, renderer, window, 255);
                     }
                 }
             }  
             else
-            {
-                drawCell(i, j, renderer, window, 0);
+            {     
+                if(isReset)
+                    drawCell(i, j, renderer, window, 0);      
                 continue; 
             }
         }
     }
-
 
     for(unsigned int i = 0; i < xCells; i++)
     {
@@ -88,6 +98,13 @@ void updateCells(SDL_Renderer* renderer, SDL_Window* window)
             cells[i][j] = (unsigned char)newCells[i][j];
         }
     }
+
+    time(&end);
+
+    int time = end - start;
+
+    if(time <= 1000 / timeSteps)
+        Sleep(1000 / timeSteps - time);
 }
 
 int main(int argc, char *argv[])
@@ -96,7 +113,7 @@ int main(int argc, char *argv[])
     {
         for(unsigned int j = 0; j < yCells; j++)
         {
-            cells[i][j] = (unsigned char)0x00;
+            cells[i][j] = 0x00;
         }
     }
 
@@ -139,7 +156,7 @@ int main(int argc, char *argv[])
                 }
                 else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RIGHT && !isPlaying) 
                 {
-                    updateCells(renderer, window);
+                    updateCells(renderer, window, 0);
                 }
                 else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_SPACE)
                 {
@@ -155,11 +172,15 @@ int main(int argc, char *argv[])
                     {
                         for(unsigned int j = 0; j < yCells; j++)
                         {
-                            cells[i][j] = (unsigned char)0x00;
+                            cells[i][j] = 0x00;
                         }
                     }
-                    updateCells(renderer, window);
+                    updateCells(renderer, window, 1);
                 }
+                else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_UP)
+                    timeSteps++;
+                else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_DOWN && timeSteps > 1)
+                    timeSteps--;
             }
             else if(event.type == SDL_MOUSEMOTION)
             {
@@ -172,30 +193,35 @@ int main(int argc, char *argv[])
             {
                 if(event.button.button == SDL_BUTTON_LEFT && !isPlaying)
                 {
+                    int xRight = (xMouse + 1) % xCells;
+                    int xLeft = (xCells + (xMouse - 1)) % xCells;
+                    int yAbove = (yMouse + 1) % yCells;
+                    int yBelow = (yCells + (yMouse - 1)) % yCells;
+
                     if((cells[xMouse][yMouse]) & 0x01)
                     {
-                        cells[xMouse][(yMouse)] -= 0x01;
-                        cells[(xMouse+1) % xCells][(yMouse % yCells)] -= (unsigned char)0x02;
-                        cells[(xMouse+1) % xCells][((yMouse+1) % yCells)] -= (unsigned char)0x02;
-                        cells[(xMouse+1) % xCells][((yCells + (yMouse-1)) % yCells)] -= (unsigned char)0x02;
-                        cells[xMouse % xCells][((yMouse+1) % yCells)] -= (unsigned char)0x02;
-                        cells[xMouse % xCells][((yCells + (yMouse-1)) % yCells)] -= (unsigned char)0x02;
-                        cells[(xCells + (xMouse-1)) % xCells][(yMouse % yCells)] -= (unsigned char)0x02;
-                        cells[(xCells + (xMouse-1)) % xCells][((yMouse+1) % yCells)] -= (unsigned char)0x02;
-                        cells[(xCells + (xMouse-1)) % xCells][((yCells + (yMouse-1)) % yCells)] -= (unsigned char)0x02;
+                        cells[xMouse][yMouse] -= 0x01;
+                        cells[xRight][yMouse] -= 0x02;
+                        cells[xRight][yAbove] -= 0x02;
+                        cells[xRight][yBelow] -= 0x02;
+                        cells[xMouse][yAbove] -= 0x02;
+                        cells[xMouse][yBelow] -= 0x02;
+                        cells[xLeft][yMouse] -= 0x02;
+                        cells[xLeft][yAbove] -= 0x02;
+                        cells[xLeft][yBelow] -= 0x02;
                         drawCell(xMouse, yMouse, renderer, window, 0);
                     }
                     else
                     {
-                        cells[xMouse][(yMouse)] += (unsigned char)0x01;
-                        cells[(xMouse+1) % xCells][(yMouse % yCells)] += (unsigned char)0x02;
-                        cells[(xMouse+1) % xCells][((yMouse+1) % yCells)] += (unsigned char)0x02;
-                        cells[(xMouse+1) % xCells][((yCells + (yMouse-1)) % yCells)] += (unsigned char)0x02;
-                        cells[xMouse % xCells][((yMouse+1) % yCells)] += (unsigned char)0x02;
-                        cells[xMouse % xCells][((yCells + (yMouse-1)) % yCells)] += (unsigned char)0x02;
-                        cells[(xCells + (xMouse-1)) % xCells][(yMouse % yCells)] += (unsigned char)0x02;
-                        cells[(xCells + (xMouse-1)) % xCells][((yMouse+1) % yCells)] += (unsigned char)0x02;
-                        cells[(xCells + (xMouse-1)) % xCells][((yCells + (yMouse-1)) % yCells)] += (unsigned char)0x02;
+                        cells[xMouse][yMouse] += 0x01;
+                        cells[xRight][yMouse] += 0x02;
+                        cells[xRight][yAbove] += 0x02;
+                        cells[xRight][yBelow] += 0x02;
+                        cells[xMouse][yAbove] += 0x02;
+                        cells[xMouse][yBelow] += 0x02;
+                        cells[xLeft][yMouse] += 0x02;
+                        cells[xLeft][yAbove] += 0x02;
+                        cells[xLeft][yBelow] += 0x02;
                         drawCell(xMouse, yMouse, renderer, window, 255);
                     }
                 }
@@ -204,7 +230,7 @@ int main(int argc, char *argv[])
 
         if(isPlaying)
         {
-            updateCells(renderer, window);
+            updateCells(renderer, window, 0);
         }
     }
 
