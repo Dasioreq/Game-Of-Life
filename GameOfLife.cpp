@@ -1,10 +1,11 @@
 #include <SDL2/SDL.h>
 #include <iostream>
-#include <windows.h>
+#include <chrono>
 #include <cmath>
 
 const unsigned int xCells = 16*4, yCells = 9*4,  sizeMult = 25;
 int timeSteps = 5;
+bool quit = false, isPlaying = false;
 
 unsigned char cells[xCells][yCells];
 unsigned char newCells[xCells][yCells];
@@ -26,11 +27,50 @@ void drawCell(unsigned int i,unsigned int j, SDL_Renderer* renderer, SDL_Window*
     SDL_RenderPresent(renderer);
 }
 
+void sleep(double millis, SDL_Renderer* renderer, SDL_Window* window)
+{
+    auto startTime = chrono::system_clock::now();
+    chrono::duration<double, std::milli> elapsed = startTime - startTime;
+     
+    while(elapsed.count() < millis)
+    {
+        SDL_Event event;
+        if(SDL_PollEvent(&event))
+        {
+            if(event.type == SDL_QUIT)
+            {
+                quit = true;
+                break;
+            }
+            else if(event.type==SDL_KEYDOWN)
+            {
+                if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) 
+                {
+                    quit = true;
+                    break;
+                }
+                else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_SPACE)
+                {
+                    if(isPlaying)
+                        isPlaying = false;
+                    else
+                        isPlaying = true;
+
+                    break;
+                }
+                else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_UP)
+                    timeSteps++;
+                else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_DOWN && timeSteps > 1)
+                    timeSteps--;
+            }
+        }
+        elapsed = chrono::system_clock::now() - startTime;
+    }
+}
+
 void updateCells(SDL_Renderer* renderer, SDL_Window* window, bool isReset)
 {
-    time_t start, end;
-
-    time(&start);
+    auto startTime = chrono::system_clock::now();
 
     for(int i = 0; i < xCells; i++)
     {
@@ -97,12 +137,9 @@ void updateCells(SDL_Renderer* renderer, SDL_Window* window, bool isReset)
         }
     }
 
-    time(&end);
+    chrono::duration<double, std::milli> elapsed = chrono::system_clock::now() - startTime;
 
-    double time = end - start;
-
-    if(time <= 1000 / timeSteps)
-        Sleep(1000.0 / timeSteps - time);
+    sleep(1000 / timeSteps - elapsed.count(), renderer, window);
 }
 
 int main(int argc, char *argv[])
@@ -126,7 +163,6 @@ int main(int argc, char *argv[])
 
     SDL_Event event;
 
-    bool quit = false, isPlaying = false;
     int xMouse;
     int yMouse;
 
