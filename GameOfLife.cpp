@@ -58,6 +58,18 @@ void sleep(double millis, SDL_Renderer* renderer, SDL_Window* window)
 
                     break;
                 }
+                else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_r)
+                {
+                    isPlaying = false;
+                    for(unsigned int i = 0; i < xCells; i++)
+                    {
+                        for(unsigned int j = 0; j < yCells; j++)
+                        {
+                            cells[i][j] = 0x00;
+                            drawCell(i, j, renderer, window, 0);   
+                        }
+                    }
+                }
                 else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_UP)
                     timeSteps++;
                 else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_DOWN && timeSteps > 1)
@@ -68,7 +80,7 @@ void sleep(double millis, SDL_Renderer* renderer, SDL_Window* window)
     }
 }
 
-void updateCells(SDL_Renderer* renderer, SDL_Window* window, bool isReset)
+void updateCells(SDL_Renderer* renderer, SDL_Window* window)
 {
     auto startTime = chrono::system_clock::now();
 
@@ -190,7 +202,7 @@ int main(int argc, char *argv[])
                 }
                 else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RIGHT && !isPlaying) 
                 {
-                    updateCells(renderer, window, 0);
+                    updateCells(renderer, window);
                 }
                 else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_SPACE)
                 {
@@ -210,7 +222,6 @@ int main(int argc, char *argv[])
                             drawCell(i, j, renderer, window, 0);   
                         }
                     }
-                    updateCells(renderer, window, 1);
                 }
                 else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_UP)
                     timeSteps++;
@@ -265,7 +276,7 @@ int main(int argc, char *argv[])
 
         if(isPlaying)
         {
-            updateCells(renderer, window, 0);
+            updateCells(renderer, window);
         }
     }
 
