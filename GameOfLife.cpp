@@ -1,14 +1,10 @@
 #include <SDL2/SDL.h>
-#include <iostream>
 #include <chrono>
 #include <cmath>
 
-const unsigned int xCells = 16*4, yCells = 9*4,  sizeMult = 25;
+unsigned int xCells = 16*4, yCells = 9*4,  sizeMult = 25;
 int timeSteps = 5;
-bool quit = false, isPlaying = false;
-
-unsigned char cells[xCells][yCells];
-unsigned char newCells[xCells][yCells];
+bool quit = false, isPlaying = false, wraparound = true;
 
 using namespace std;
 
@@ -27,7 +23,7 @@ void drawCell(unsigned int i,unsigned int j, SDL_Renderer* renderer, SDL_Window*
     SDL_RenderPresent(renderer);
 }
 
-void sleep(double millis, SDL_Renderer* renderer, SDL_Window* window)
+void sleep(double millis, SDL_Renderer* renderer, SDL_Window* window, unsigned char** cells)
 {
     auto startTime = chrono::system_clock::now();
     chrono::duration<double, std::milli> elapsed = startTime - startTime;
@@ -74,69 +70,169 @@ void sleep(double millis, SDL_Renderer* renderer, SDL_Window* window)
                     timeSteps++;
                 else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_DOWN && timeSteps > 1)
                     timeSteps--;
+                else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_w)
+                {
+                    isPlaying = false;
+                    for(unsigned int i = 0; i < xCells; i++)
+                    {
+                        for(unsigned int j = 0; j < yCells; j++)
+                        {
+                            cells[i][j] = 0x00;
+                            drawCell(i, j, renderer, window, 0);   
+                        }
+                    }
+                    if(wraparound)
+                        wraparound = false;
+                    else
+                        wraparound = true;
+                }
             }
         }
         elapsed = chrono::system_clock::now() - startTime;
     }
 }
 
-void updateCells(SDL_Renderer* renderer, SDL_Window* window)
+void updateCells(SDL_Renderer* renderer, SDL_Window* window, unsigned char** cells)
 {
     auto startTime = chrono::system_clock::now();
 
+    unsigned char** newCells = new unsigned char*[xCells];
+
     for(int i = 0; i < xCells; i++)
     {
+        newCells[i] = new unsigned char[yCells];
+
         for(int j = 0; j < yCells; j++)
             newCells[i][j] = cells[i][j];
     }
 
-    for(int i = 0; i < xCells; i++)
+    if(wraparound)
     {
-        for(int j = 0; j < yCells; j++)
+        for(int i = 0; i < xCells; i++)
         {
-            if(cells[i][j] != 0)
+            for(int j = 0; j < yCells; j++)
             {
-                int xRight = (i + 1) % xCells;
-                int xLeft = (xCells + (i - 1)) % xCells;
-                int yAbove = (j + 1) % yCells;
-                int yBelow = (yCells + (j - 1)) % yCells;
+                if(cells[i][j] != 0)
+                {
+                    int xRight = (i + 1) % xCells;
+                    int xLeft = (xCells + (i - 1)) % xCells;
+                    int yBelow = (j + 1) % yCells;
+                    int yAbove = (yCells + (j - 1)) % yCells;
 
-                if((cells[i][j]) & 0x01)
-                {
-                    if((cells[i][j] >> 1) > 3 || (cells[i][j] >> 1) < 2)
+                    if((cells[i][j]) & 0x01)
                     {
-                        newCells[i][j] -= 0x01;
-                        newCells[i][yAbove] -= 0x02;
-                        newCells[i][yBelow] -= 0x02;
-                        newCells[xRight][j] -= 0x02;
-                        newCells[xRight][yAbove] -= 0x02;
-                        newCells[xRight][yBelow] -= 0x02;
-                        newCells[xLeft][j] -= 0x02;
-                        newCells[xLeft][yAbove] -= 0x02;
-                        newCells[xLeft][yBelow] -= 0x02;
-                        drawCell(i, j, renderer, window, 0);
+                        if((cells[i][j] >> 1) > 3 || (cells[i][j] >> 1) < 2)
+                        {
+                            newCells[i][j] -= 0x01;
+                            newCells[i][yAbove] -= 0x02;
+                            newCells[i][yBelow] -= 0x02;
+                            newCells[xRight][j] -= 0x02;
+                            newCells[xRight][yAbove] -= 0x02;
+                            newCells[xRight][yBelow] -= 0x02;
+                            newCells[xLeft][j] -= 0x02;
+                            newCells[xLeft][yAbove] -= 0x02;
+                            newCells[xLeft][yBelow] -= 0x02;
+                            drawCell(i, j, renderer, window, 0);
+                        }
                     }
-                }
+                    else
+                    {
+                        if(cells[i][j] >> 1 == 0x03)
+                        {
+                            newCells[i][j] += 0x01;
+                            newCells[i][yAbove] += 0x02;
+                            newCells[i][yBelow] += 0x02;
+                            newCells[xRight][j] += 0x02;
+                            newCells[xRight][yAbove] += 0x02;
+                            newCells[xRight][yBelow] += 0x02;
+                            newCells[xLeft][j] += 0x02;
+                            newCells[xLeft][yAbove] += 0x02;
+                            newCells[xLeft][yBelow] += 0x02;
+                            drawCell(i, j, renderer, window, 255);
+                        }
+                    }
+                }  
                 else
-                {
-                    if(cells[i][j] >> 1 == 0x03)
-                    {
-                        newCells[i][j] += 0x01;
-                        newCells[i][yAbove] += 0x02;
-                        newCells[i][yBelow] += 0x02;
-                        newCells[xRight][j] += 0x02;
-                        newCells[xRight][yAbove] += 0x02;
-                        newCells[xRight][yBelow] += 0x02;
-                        newCells[xLeft][j] += 0x02;
-                        newCells[xLeft][yAbove] += 0x02;
-                        newCells[xLeft][yBelow] += 0x02;
-                        drawCell(i, j, renderer, window, 255);
-                    }
+                {        
+                    continue; 
                 }
-            }  
-            else
-            {        
-                continue; 
+            }
+        }
+    }
+    else
+    {
+        for(int i = 0; i < xCells; i++)
+        {
+            for(int j = 0; j < yCells; j++)
+            {
+                if(cells[i][j] != 0)
+                {
+                    int xRight = i + 1;
+                    int xLeft = i - 1;
+                    int yAbove = j - 1;
+                    int yBelow = j + 1;
+
+                    if((cells[i][j]) & 0x01)
+                    {
+                        if((cells[i][j] >> 1) > 3 || (cells[i][j] >> 1) < 2)
+                        {
+                            newCells[i][j] -= 0x01;
+                            if(yAbove >= 0)
+                            {
+                                newCells[i][yAbove] -= 0x02;
+                                if(xRight < xCells)
+                                    newCells[xRight][yAbove] -= 0x02;
+                                if(xLeft >= 0)
+                                    newCells[xLeft][yAbove] -= 0x02;
+                            }
+                            if(yBelow < yCells)
+                            {
+                                newCells[i][yBelow] -= 0x02;
+                                if(xRight < xCells)
+                                    newCells[xRight][yBelow] -= 0x02;
+                                if(xLeft >= 0)
+                                    newCells[xLeft][yBelow] -= 0x02;
+                            }
+                            if(xRight < xCells)
+                                newCells[xRight][j] -= 0x02;
+                            if(xLeft >= 0)
+                                newCells[xLeft][j] -= 0x02;
+                            drawCell(i, j, renderer, window, 0);
+                        }
+                    }
+                    else
+                    {
+                        if(cells[i][j] >> 1 == 0x03)
+                        {
+                            newCells[i][j] += 0x01;
+                            if(yAbove >= 0)
+                            {
+                                newCells[i][yAbove] += 0x02;
+                                if(xRight < xCells)
+                                    newCells[xRight][yAbove] += 0x02;
+                                if(xLeft >= 0)
+                                    newCells[xLeft][yAbove] += 0x02;
+                            }
+                            if(yBelow < yCells)
+                            {
+                                newCells[i][yBelow] += 0x02;
+                                if(xRight < xCells)
+                                    newCells[xRight][yBelow] += 0x02;
+                                if(xLeft >= 0)
+                                    newCells[xLeft][yBelow] += 0x02;
+                            }
+                            if(xRight < xCells)
+                                newCells[xRight][j] += 0x02;
+                            if(xLeft >= 0)
+                                newCells[xLeft][j] += 0x02;
+                            drawCell(i, j, renderer, window, 255);
+                        }
+                    }
+                }  
+                else
+                {        
+                    continue; 
+                }
             }
         }
     }
@@ -149,21 +245,15 @@ void updateCells(SDL_Renderer* renderer, SDL_Window* window)
         }
     }
 
+    delete[] newCells;
+
     chrono::duration<double, std::milli> elapsed = chrono::system_clock::now() - startTime;
 
-    sleep(1000 / timeSteps - elapsed.count(), renderer, window);
+    sleep(1000 / timeSteps - elapsed.count(), renderer, window, cells);
 }
 
 int main(int argc, char *argv[])
 {
-    for(unsigned int i = 0; i < xCells; i++)
-    {
-        for(unsigned int j = 0; j < yCells; j++)
-        {
-            cells[i][j] = 0x00;
-        }
-    }
-
 	SDL_Init(SDL_INIT_EVERYTHING);
     SDL_Window *window = SDL_CreateWindow("Conway's Game of Life", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, xCells * sizeMult, yCells * sizeMult, SDL_WINDOW_SHOWN);
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
@@ -178,10 +268,15 @@ int main(int argc, char *argv[])
     int xMouse;
     int yMouse;
 
+    unsigned char** cells = new unsigned char*[xCells];
+
     for(int i = 0; i < xCells; i++)
     {
-        for(unsigned int j = 0; j < yCells; j++)
+        cells[i] = new unsigned char[yCells];
+
+        for(int j = 0; j < yCells; j++)
         {
+            cells[i][j] = 0x00;
             drawCell(i, j, renderer, window, 0);
         }
     }
@@ -202,7 +297,7 @@ int main(int argc, char *argv[])
                 }
                 else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RIGHT && !isPlaying) 
                 {
-                    updateCells(renderer, window);
+                    updateCells(renderer, window, cells);
                 }
                 else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_SPACE)
                 {
@@ -227,6 +322,22 @@ int main(int argc, char *argv[])
                     timeSteps++;
                 else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_DOWN && timeSteps > 1)
                     timeSteps--;
+                else if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_w)
+                {
+                    isPlaying = false;
+                    for(unsigned int i = 0; i < xCells; i++)
+                    {
+                        for(unsigned int j = 0; j < yCells; j++)
+                        {
+                            cells[i][j] = 0x00;
+                            drawCell(i, j, renderer, window, 0);   
+                        }
+                    }
+                    if(wraparound)
+                        wraparound = false;
+                    else
+                        wraparound = true;
+                }
             }
             else if(event.type == SDL_MOUSEMOTION)
             {
@@ -276,9 +387,11 @@ int main(int argc, char *argv[])
 
         if(isPlaying)
         {
-            updateCells(renderer, window);
+            updateCells(renderer, window, cells);
         }
     }
+
+    delete[] cells;
 
     SDL_DestroyWindow(window);
     SDL_Quit();

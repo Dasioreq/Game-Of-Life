@@ -15,6 +15,8 @@
   *Up/Down: Increase/Decrease simulation speed
  (default is 5/sec, minimum is 1/sec)
 
+ *W: Switch between Wraparound and Borders (WA by default)
+
 ##Rules:
   1. If an alive cell has less than 2 or more than 3 alive neighbo(u)rs it dies
   2. If a dead cell has exactly 3 alive neighbo(u)rs it becomes alive 
