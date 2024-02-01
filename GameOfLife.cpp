@@ -2,7 +2,7 @@
 #include <chrono>
 #include <cmath>
 
-unsigned int xCells = 16*4, yCells = 9*4,  sizeMult = 25;
+unsigned int xCells = 16*4, yCells = 9*4,  sizeMult = 25, margin = sizeMult / 15;
 int timeSteps = 5;
 bool quit = false, isPlaying = false, wraparound = true;
 
@@ -12,10 +12,10 @@ void drawCell(unsigned int i,unsigned int j, SDL_Renderer* renderer, SDL_Window*
 {
     SDL_Renderer *rectRenderer = SDL_CreateRenderer(window, -1, 0);
     SDL_Rect cellRect;
-    cellRect.x = (sizeMult * i) + (sizeMult / 15);
-    cellRect.y = (sizeMult * j) + (sizeMult / 15);
-    cellRect.w = sizeMult - sizeMult / 15;
-    cellRect.h = sizeMult - sizeMult / 15;
+    cellRect.x = (sizeMult * i) + margin;
+    cellRect.y = (sizeMult * j) + margin;
+    cellRect.w = sizeMult - margin;
+    cellRect.h = sizeMult - margin;
 
     SDL_SetRenderDrawColor(renderer, color, color, color, 255);
     SDL_RenderFillRect(renderer, &cellRect);
@@ -348,38 +348,102 @@ int main(int argc, char *argv[])
             }
             else if(event.type == SDL_MOUSEBUTTONDOWN)
             {
-                if(event.button.button == SDL_BUTTON_LEFT && !isPlaying)
+                if(wraparound)
                 {
-                    int xRight = (xMouse + 1) % xCells;
-                    int xLeft = (xCells + (xMouse - 1)) % xCells;
-                    int yAbove = (yMouse + 1) % yCells;
-                    int yBelow = (yCells + (yMouse - 1)) % yCells;
+                    if(event.button.button == SDL_BUTTON_LEFT && !isPlaying)
+                    {
+                        int xRight = (xMouse + 1) % xCells;
+                        int xLeft = (xCells + (xMouse - 1)) % xCells;
+                        int yAbove = (yMouse + 1) % yCells;
+                        int yBelow = (yCells + (yMouse - 1)) % yCells;
 
-                    if((cells[xMouse][yMouse]) & 0x01)
-                    {
-                        cells[xMouse][yMouse] -= 0x01;
-                        cells[xRight][yMouse] -= 0x02;
-                        cells[xRight][yAbove] -= 0x02;
-                        cells[xRight][yBelow] -= 0x02;
-                        cells[xMouse][yAbove] -= 0x02;
-                        cells[xMouse][yBelow] -= 0x02;
-                        cells[xLeft][yMouse] -= 0x02;
-                        cells[xLeft][yAbove] -= 0x02;
-                        cells[xLeft][yBelow] -= 0x02;
-                        drawCell(xMouse, yMouse, renderer, window, 0);
+                        if((cells[xMouse][yMouse]) & 0x01)
+                        {
+                            cells[xMouse][yMouse] -= 0x01;
+                            cells[xRight][yMouse] -= 0x02;
+                            cells[xRight][yAbove] -= 0x02;
+                            cells[xRight][yBelow] -= 0x02;
+                            cells[xMouse][yAbove] -= 0x02;
+                            cells[xMouse][yBelow] -= 0x02;
+                            cells[xLeft][yMouse] -= 0x02;
+                            cells[xLeft][yAbove] -= 0x02;
+                            cells[xLeft][yBelow] -= 0x02;
+                            drawCell(xMouse, yMouse, renderer, window, 0);
+                        }
+                        else
+                        {
+                            cells[xMouse][yMouse] += 0x01;
+                            cells[xRight][yMouse] += 0x02;
+                            cells[xRight][yAbove] += 0x02;
+                            cells[xRight][yBelow] += 0x02;
+                            cells[xMouse][yAbove] += 0x02;
+                            cells[xMouse][yBelow] += 0x02;
+                            cells[xLeft][yMouse] += 0x02;
+                            cells[xLeft][yAbove] += 0x02;
+                            cells[xLeft][yBelow] += 0x02;
+                            drawCell(xMouse, yMouse, renderer, window, 255);
+                        }
                     }
-                    else
+                }
+                else
+                {
+                    if(event.button.button == SDL_BUTTON_LEFT && !isPlaying)
                     {
-                        cells[xMouse][yMouse] += 0x01;
-                        cells[xRight][yMouse] += 0x02;
-                        cells[xRight][yAbove] += 0x02;
-                        cells[xRight][yBelow] += 0x02;
-                        cells[xMouse][yAbove] += 0x02;
-                        cells[xMouse][yBelow] += 0x02;
-                        cells[xLeft][yMouse] += 0x02;
-                        cells[xLeft][yAbove] += 0x02;
-                        cells[xLeft][yBelow] += 0x02;
-                        drawCell(xMouse, yMouse, renderer, window, 255);
+                        int xRight = xMouse + 1;
+                        int xLeft = xMouse - 1;
+                        int yAbove = yMouse - 1;
+                        int yBelow = yMouse + 1;
+
+                        if(cells[xMouse][yMouse] & 0x01)
+                        {
+                            cells[xMouse][yMouse] -= 0x01;
+                            if(yAbove >= 0)
+                            {
+                                cells[xMouse][yAbove] -= 0x02;
+                                if(xRight < xCells)
+                                    cells[xRight][yAbove] -= 0x02;
+                                if(xLeft >= 0)
+                                    cells[xLeft][yAbove] -= 0x02;
+                            }
+                            if(yBelow < yCells)
+                            {
+                                cells[xMouse][yBelow] -= 0x02;
+                                if(xRight < xCells)
+                                    cells[xRight][yBelow] -= 0x02;
+                                if(xLeft >= 0)
+                                    cells[xLeft][yBelow] -= 0x02;
+                            }
+                            if(xRight < xCells)
+                                cells[xRight][yMouse] -= 0x02;
+                            if(xLeft >= 0)
+                                cells[xLeft][yMouse] -= 0x02;
+                            drawCell(xMouse, yMouse, renderer, window, 0);
+                        }
+                        else
+                        {
+                            cells[xMouse][yMouse] += 0x01;
+                            if(yAbove >= 0)
+                            {
+                                cells[xMouse][yAbove] += 0x02;
+                                if(xRight < xCells)
+                                    cells[xRight][yAbove] += 0x02;
+                                if(xLeft >= 0)
+                                    cells[xLeft][yAbove] += 0x02;
+                            }
+                            if(yBelow < yCells)
+                            {
+                                cells[xMouse][yBelow] += 0x02;
+                                if(xRight < xCells)
+                                    cells[xRight][yBelow] += 0x02;
+                                if(xLeft >= 0)
+                                    cells[xLeft][yBelow] += 0x02;
+                            }
+                            if(xRight < xCells)
+                                cells[xRight][yMouse] += 0x02;
+                            if(xLeft >= 0)
+                                cells[xLeft][yMouse] += 0x02;
+                            drawCell(xMouse, yMouse, renderer, window, 255);
+                        }
                     }
                 }
             }
